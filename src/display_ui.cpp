@@ -189,14 +189,19 @@ void updateDisplayUI(
 
     // 2行目: BLE 状態
     if (bleStatus.connected) {
-        if (bleStatus.failsafe_triggered) {
+        if (bleStatus.rx_packet_count == 0) {
+            g_canvas.setTextColor(TFT_YELLOW, TFT_BLACK);
+            g_canvas.drawString("BLE:WAIT FIRST CMD", 6, 215, &fonts::Font0);
+        } else if (bleStatus.failsafe_triggered) {
             g_canvas.setTextColor(TFT_RED, TFT_BLACK);
-            g_canvas.drawString("BLE:TIMEOUT(FAILSAFE)", 6, 215, &fonts::Font0);
+            char bStr[32];
+            snprintf(bStr, sizeof(bStr), "BLE:TIMEOUT [%s]", bleStatus.last_raw_msg);
+            g_canvas.drawString(bStr, 6, 215, &fonts::Font0);
         } else {
             g_canvas.setTextColor(TFT_CYAN, TFT_BLACK);
-            char bStr[28];
+            char bStr[32];
             uint32_t dt = millis() - bleStatus.last_packet_ms;
-            snprintf(bStr, sizeof(bStr), "BLE:OK (%ums)", dt);
+            snprintf(bStr, sizeof(bStr), "BLE:OK(%ums)[%s]", dt, bleStatus.last_raw_msg);
             g_canvas.drawString(bStr, 6, 215, &fonts::Font0);
         }
     } else {

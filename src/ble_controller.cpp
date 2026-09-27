@@ -57,6 +57,7 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) override {
         std::string rxValue = pCharacteristic->getValue();
         if (rxValue.length() == 0) return;
+        Serial.printf("[BLE] Raw data received: %u bytes\n", (unsigned int)rxValue.length());
 
         // バイナリプロトコル判定: 0xAA 0x55 <int8_t vx> <int8_t vy> <int8_t omega>
         if (rxValue.length() >= 5 && (uint8_t)rxValue[0] == 0xAA && (uint8_t)rxValue[1] == 0x55) {
@@ -117,13 +118,16 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
         } else if (strcasecmp(buffer, "S") == 0 || strcasecmp(buffer, "STOP") == 0) {
             g_bleStatus.vx = 0.0f; g_bleStatus.vy = 0.0f; g_bleStatus.omega = 0.0f;
         } else {
-            // 不明なコマンドは無視
+            // 不明なコマンド
+            Serial.printf("[BLE RX unknown] '%s' (len: %u)\n", buffer, (unsigned int)strlen(buffer));
             return;
         }
 
         g_bleStatus.last_packet_ms = millis();
         g_bleStatus.rx_packet_count++;
         g_bleStatus.failsafe_triggered = false;
+        Serial.printf("[BLE RX #%u] Cmd:'%s' -> Vx:%.2f, Vy:%.2f, W:%.2f\n",
+            g_bleStatus.rx_packet_count, buffer, g_bleStatus.vx, g_bleStatus.vy, g_bleStatus.omega);
     }
 };
 
