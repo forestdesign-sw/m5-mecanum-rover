@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <title>Mecanum Rover Controller</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      background-color: #0d1117;
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      touch-action: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ヘッダー */
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #58a6ff;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      transition: all 0.3s ease;
+    }
+
+    .status-badge.connected {
+      background: #1f6feb22;
+      color: #58a6ff;
+      border-color: #1f6feb;
+    }
+
+    .status-badge.transmitting {
+      background: #23863622;
+      color: #3fb950;
+      border-color: #238636;
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 6px 12px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-connect {
+      background: #238636;
+      color: #ffffff;
+    }
+    .btn-connect:active { background: #2ea043; }
+
+    .btn-disconnect {
+      background: #da3633;
+      color: #ffffff;
+    }
+    .btn-disconnect:active { background: #f85149; }
+
+    .speed-selector {
+      display: flex;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .speed-btn {
+      background: transparent;
+      color: #8b949e;
+      padding: 5px 9px;
+      font-size: 11px;
+      border-radius: 0;
+    }
+
+    .speed-btn.active {
+      background: #388bfd;
+      color: #ffffff;
+    }
+
+    /* メイン操縦画面 */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 16px;
+      gap: 12px;
+      position: relative;
+    }
+
+    @media (orientation: portrait) {
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto 1fr;
+      }
+    }
+
+    /* ジョイスティックコンテナ */
+    .stick-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 100%;
+    }
+
+    .stick-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      letter-spacing: 0.5px;
+    }
+
+    .joystick-base {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      max-width: 42vw;
+      max-height: 42vw;
+      aspect-ratio: 1 / 1;
+      background: radial-gradient(circle, #161b22 0%, #0d1117 100%);
+      border: 2px solid #30363d;
+      border-radius: 50%;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .joystick-base::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 1px;
+      background: #30363d55;
+    }
+
+    .joystick-base::after {
+      content: '';
+      position: absolute;
+      width: 1px;
+      height: 100%;
+      background: #30363d55;
+    }
+
+    .joystick-handle {
+      position: absolute;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #388bfd 0%, #1f6feb 100%);
+      box-shadow: 0 4px 12px rgba(31, 111, 235, 0.4), inset 0 2px 4px rgba(255,255,255,0.3);
+      cursor: grab;
+      touch-action: none;
+      transform: translate(0px, 0px);
+      transition: transform 0.05s ease-out;
+    }
+
+    .turn-handle {
+      background: radial-gradient(circle, #2ea043 0%, #238636 100%);
+      box-shadow: 0 4px 12px rgba(35, 134, 54, 0.4), inset 0 2px 4px rgba(255,255,255,0.3);
+    }
+
+    /* センター操作パネル */
+    .center-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 5;
+    }
+
+    .btn-stop {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #f85149 0%, #da3633 100%);
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 16px rgba(218, 54, 51, 0.5);
+      border: 3px solid #ff7b72;
+    }
+    .btn-stop:active {
+      transform: scale(0.95);
+      background: #b62324;
+    }
+
+    .monitor-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #7ee787;
+      text-align: center;
+      line-height: 1.5;
+      min-width: 120px;
+    }
+
+    .monitor-val {
+      color: #ffffff;
+    }
+
+    /* フッター */
+    footer {
+      background: #161b22;
+      border-top: 1px solid #30363d;
+      padding: 6px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header>
+    <div class="title-group">
+      <div class="logo">ROVER PAD</div>
+      <div id="statusBadge" class="status-badge">DISCONNECTED</div>
+    </div>
+    <div class="controls-group">
+      <!-- 速度リミッター -->
+      <div class="speed-selector">
+        <button id="spdLow" class="speed-btn" onclick="setSpeedLimit(0.4)">40%</button>
+        <button id="spdMid" class="speed-btn active" onclick="setSpeedLimit(0.7)">70%</button>
+        <button id="spdHigh" class="speed-btn" onclick="setSpeedLimit(1.0)">100%</button>
+      </div>
+      <!-- 接続ボタン -->
+      <button id="btnConnect" class="btn-connect" onclick="toggleConnect()">CONNECT</button>
+    </div>
+  </header>
+
+  <!-- コントローラ画面 -->
+  <main>
+    <!-- 左スティック: 前後・左右平行移動 -->
+    <div class="stick-zone">
+      <div class="stick-label">MOVE (Vx, Vy)</div>
+      <div id="moveBase" class="joystick-base">
+        <div id="moveHandle" class="joystick-handle"></div>
+      </div>
+    </div>
+
+    <!-- センター: 非常停止 ＆ デバッグモニタ -->
+    <div class="center-panel">
+      <button class="btn-stop" onclick="emergencyStop()">STOP</button>
+      <div class="monitor-card">
+        <div>Vx: <span id="monVx" class="monitor-val">+0.00</span></div>
+        <div>Vy: <span id="monVy" class="monitor-val">+0.00</span></div>
+        <div>W : <span id="monW" class="monitor-val">+0.00</span></div>
+        <div style="font-size: 10px; color: #8b949e; margin-top: 4px;">
+          RATE: <span id="monRate" style="color: #58a6ff;">0</span> Hz
+        </div>
+      </div>
+    </div>
+
+    <!-- 右スティック: 旋回 -->
+    <div class="stick-zone">
+      <div class="stick-label">TURN (&Omega;)</div>
+      <div id="turnBase" class="joystick-base">
+        <div id="turnHandle" class="joystick-handle turn-handle"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- フッター -->
+  <footer>
+    <div id="footerMsg">Ready to connect via Web Bluetooth (BLE UART)</div>
+    <div>M5StickC Plus SE</div>
+  </footer>
+
+  <script>
+    // =========================================================
+    // BLE 設定定数 (Nordic UART Service: NUS)
+    // =========================================================
+    const NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const NUS_RX_CHAR_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Write
+    const NUS_TX_CHAR_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // Notify
+
+    let bleDevice = null;
+    let bleServer = null;
+    let rxCharacteristic = null;
+    let isConnected = false;
+
+    // 操縦パラメータ
+    let targetVx = 0.0;
+    let targetVy = 0.0;
+    let targetOmega = 0.0;
+    let speedLimit = 0.7; // デフォルト70%出力
+
+    // 定期送信ループタイマー (60ms = 約16Hz)
+    let sendTimer = null;
+    let packetCounter = 0;
+    let lastRateCheck = Date.now();
+
+    // UI要素
+    const statusBadge = document.getElementById("statusBadge");
+    const btnConnect = document.getElementById("btnConnect");
+    const footerMsg = document.getElementById("footerMsg");
+    const monVx = document.getElementById("monVx");
+    const monVy = document.getElementById("monVy");
+    const monW = document.getElementById("monW");
+    const monRate = document.getElementById("monRate");
+
+    // =========================================================
+    // Web Bluetooth 接続制御
+    // =========================================================
+    async function toggleConnect() {
+      if (isConnected) {
+        disconnectBLE();
+      } else {
+        await connectBLE();
+      }
+    }
+
+    async function connectBLE() {
+      if (!navigator.bluetooth) {
+        alert("お使いのブラウザは Web Bluetooth に対応していません。Android Chrome をご利用ください。");
+        return;
+      }
+
+      try {
+        statusBadge.textContent = "SEARCHING...";
+        footerMsg.textContent = "ペアリングダイアログで 'M5-Mecanum-Rover' を選択してください";
+
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: "M5-" }, { services: [NUS_SERVICE_UUID] }],
+          optionalServices: [NUS_SERVICE_UUID]
+        });
+
+        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+        statusBadge.textContent = "CONNECTING...";
+        bleServer = await bleDevice.gatt.connect();
+
+        const service = await bleServer.getPrimaryService(NUS_SERVICE_UUID);
+        rxCharacteristic = await service.getCharacteristic(NUS_RX_CHAR_UUID);
+
+        isConnected = true;
+        updateUIConnected(true);
+
+        // 60ms周期の定期送信ループ開始 (M5StickCの500msフェールセーフを維持)
+        startTransmitLoop();
+
+      } catch (err) {
+        console.error("BLE Connect Error:", err);
+        footerMsg.textContent = "接続エラー: " + err.message;
+        updateUIConnected(false);
+      }
+    }
+
+    function disconnectBLE() {
+      if (bleDevice && bleDevice.gatt.connected) {
+        emergencyStop();
+        setTimeout(() => {
+          bleDevice.gatt.disconnect();
+        }, 100);
+      } else {
+        onDisconnected();
+      }
+    }
+
+    function onDisconnected() {
+      isConnected = false;
+      stopTransmitLoop();
+      updateUIConnected(false);
+      footerMsg.textContent = "切断されました。再接続するには CONNECT を押してください";
+    }
+
+    function updateUIConnected(connected) {
+      if (connected) {
+        statusBadge.textContent = "CONNECTED";
+        statusBadge.className = "status-badge connected";
+        btnConnect.textContent = "DISCONNECT";
+        btnConnect.className = "btn-disconnect";
+        footerMsg.textContent = "接続完了: " + (bleDevice ? bleDevice.name : "Rover");
+      } else {
+        statusBadge.textContent = "DISCONNECTED";
+        statusBadge.className = "status-badge";
+        btnConnect.textContent = "CONNECT";
+        btnConnect.className = "btn-connect";
+        monRate.textContent = "0";
+      }
+    }
+
+    // =========================================================
+    // 定期送信ループ (Keep-Alive & 連射操縦)
+    // =========================================================
+    function startTransmitLoop() {
+      stopTransmitLoop();
+      lastRateCheck = Date.now();
+      packetCounter = 0;
+
+      sendTimer = setInterval(async () => {
+        if (!isConnected || !rxCharacteristic) return;
+
+        // 指令値の計算 (-1.0 〜 1.0 に速度リミッターを乗算)
+        const vx = (targetVx * speedLimit).toFixed(2);
+        const vy = (targetVy * speedLimit).toFixed(2);
+        const w  = (targetOmega * speedLimit).toFixed(2);
+
+        // 送信フォーマット: "Vx,Vy,Omega"
+        const cmdStr = `${vx},${vy},${w}\n`;
+        const encoder = new TextEncoder();
+        const data = encoder.encode(cmdStr);
+
+        try {
+          // Write Without Response で低遅延送信
+          await rxCharacteristic.writeValueWithoutResponse(data);
+          packetCounter++;
+
+          // 画面モニタの更新
+          monVx.textContent = (vx >= 0 ? "+" : "") + vx;
+          monVy.textContent = (vy >= 0 ? "+" : "") + vy;
+          monW.textContent  = (w >= 0 ? "+" : "") + w;
+
+          // 送信レート計測
+          const now = Date.now();
+          if (now - lastRateCheck >= 1000) {
+            monRate.textContent = packetCounter;
+            packetCounter = 0;
+            lastRateCheck = now;
+          }
+        } catch (e) {
+          console.warn("Tx dropped:", e);
+        }
+      }, 60); // 60ms = 約16Hz
+    }
+
+    function stopTransmitLoop() {
+      if (sendTimer) {
+        clearInterval(sendTimer);
+        sendTimer = null;
+      }
+    }
+
+    // =========================================================
+    // 非常停止 & 速度リミッター
+    // =========================================================
+    function emergencyStop() {
+      targetVx = 0.0;
+      targetVy = 0.0;
+      targetOmega = 0.0;
+      resetJoystickVisuals();
+
+      if (isConnected && rxCharacteristic) {
+        const encoder = new TextEncoder();
+        rxCharacteristic.writeValueWithoutResponse(encoder.encode("S\n")).catch(() => {});
+      }
+
+      monVx.textContent = "+0.00";
+      monVy.textContent = "+0.00";
+      monW.textContent  = "+0.00";
+    }
+
+    function setSpeedLimit(limit) {
+      speedLimit = limit;
+      document.getElementById("spdLow").classList.toggle("active", limit === 0.4);
+      document.getElementById("spdMid").classList.toggle("active", limit === 0.7);
+      document.getElementById("spdHigh").classList.toggle("active", limit === 1.0);
+    }
+
+    // =========================================================
+    // 仮想ジョイスティック実装 (タッチ & マウス両対応)
+    // =========================================================
+    function setupJoystick(baseId, handleId, onMove, onRelease) {
+      const base = document.getElementById(baseId);
+      const handle = document.getElementById(handleId);
+      let activeTouchId = null;
+      let isDragging = false;
+
+      function getCenter() {
+        const rect = base.getBoundingClientRect();
+        return {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+          radius: rect.width / 2
+        };
+      }
+
+      function handleMove(clientX, clientY) {
+        const center = getCenter();
+        let dx = clientX - center.x;
+        let dy = clientY - center.y;
+        const dist = Math.hypot(dx, dy);
+        const maxDist = center.radius - (handle.offsetWidth / 2);
+
+        if (dist > maxDist) {
+          dx = (dx / dist) * maxDist;
+          dy = (dy / dist) * maxDist;
+        }
+
+        handle.style.transform = `translate(${dx}px, ${dy}px)`;
+
+        // -1.0 〜 1.0 に正規化 (Yは上が正)
+        const normX = dx / maxDist;
+        const normY = -dy / maxDist;
+        onMove(normX, normY);
+      }
+
+      function handleEnd() {
+        handle.style.transform = `translate(0px, 0px)`;
+        activeTouchId = null;
+        isDragging = false;
+        onRelease();
+      }
+
+      // タッチイベント
+      base.addEventListener("touchstart", (e) => {
+        if (activeTouchId !== null) return;
+        const touch = e.changedTouches[0];
+        activeTouchId = touch.identifier;
+        isDragging = true;
+        handleMove(touch.clientX, touch.clientY);
+      }, { passive: false });
+
+      window.addEventListener("touchmove", (e) => {
+        if (!isDragging) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === activeTouchId) {
+            handleMove(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+            break;
+          }
+        }
+      }, { passive: false });
+
+      window.addEventListener("touchend", (e) => {
+        if (!isDragging) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === activeTouchId) {
+            handleEnd();
+            break;
+          }
+        }
+      });
+
+      // マウスドラッグ対応 (PCプレビュー用)
+      base.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        handleMove(e.clientX, e.clientY);
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isDragging || activeTouchId !== null) return;
+        handleMove(e.clientX, e.clientY);
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isDragging && activeTouchId === null) handleEnd();
+      });
+    }
+
+    function resetJoystickVisuals() {
+      document.getElementById("moveHandle").style.transform = "translate(0px, 0px)";
+      document.getElementById("turnHandle").style.transform = "translate(0px, 0px)";
+    }
+
+    // 左スティック: 前後(Vy), 左右スライド(Vx)
+    setupJoystick("moveBase", "moveHandle", 
+      (nx, ny) => {
+        // デッドゾーン
+        targetVx = Math.abs(nx) < 0.08 ? 0 : nx;
+        targetVy = Math.abs(ny) < 0.08 ? 0 : ny;
+      },
+      () => {
+        targetVx = 0.0;
+        targetVy = 0.0;
+      }
+    );
+
+    // 右スティック: 左右で旋回(Omega)
+    setupJoystick("turnBase", "turnHandle",
+      (nx, ny) => {
+        targetOmega = Math.abs(nx) < 0.08 ? 0 : nx;
+      },
+      () => {
+        targetOmega = 0.0;
+      }
+    );
+  </script>
+</body>
+</html>
