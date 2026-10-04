@@ -67,10 +67,12 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
 
             // 改修仕様:
             // ① Y軸反転: Vy = -Vy
-            // ② 軸マッピング: 左右スティック -> Vx (平行移動), 旋回スティック -> Omega (その場旋回)
-            g_bleStatus.vx    = constrain((float)raw_vx / 100.0f, -1.0f, 1.0f);
+            // ② X軸とRotate軸(Omega)の入れ替え (実機メカナム配置対応)
+            //    左右スティック (raw_vx) -> omega (実機の平行移動項へ)
+            //    旋回スティック (raw_w)  -> vx    (実機の旋回項へ)
+            g_bleStatus.omega = constrain((float)raw_vx / 100.0f, -1.0f, 1.0f);
             g_bleStatus.vy    = constrain(-(float)raw_vy / 100.0f, -1.0f, 1.0f);
-            g_bleStatus.omega = constrain((float)raw_w / 100.0f, -1.0f, 1.0f);
+            g_bleStatus.vx    = constrain((float)raw_w / 100.0f, -1.0f, 1.0f);
 
             snprintf(g_bleStatus.last_raw_msg, sizeof(g_bleStatus.last_raw_msg), "BIN:%d,%d,%d", raw_vx, raw_vy, raw_w);
             g_bleStatus.last_packet_ms = millis();
@@ -92,16 +94,18 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
 
         trimWhitespace(buffer);
 
-        // 1. カンマ区切りフォーマット: Vx,Vy,Omega (例: "0.5,-0.2,0.0")
-        float parsed_vx = 0.0f, parsed_vy = 0.0f, parsed_omega = 0.0f;
-        int count = sscanf(buffer, "%f,%f,%f", &parsed_vx, &parsed_vy, &parsed_omega);
+        // 1. カンマ区切りフォーマット: val_x, val_y, val_w (例: "0.5,-0.2,0.0")
+        float val_x = 0.0f, val_y = 0.0f, val_w = 0.0f;
+        int count = sscanf(buffer, "%f,%f,%f", &val_x, &val_y, &val_w);
         if (count == 3) {
             // 改修仕様:
             // ① Y軸反転: Vy = -Vy
-            // ② 軸マッピング: 左右スティック -> Vx (平行移動), 旋回スティック -> Omega (その場旋回)
-            g_bleStatus.vx    = constrain(parsed_vx, -1.0f, 1.0f);
-            g_bleStatus.vy    = constrain(-parsed_vy, -1.0f, 1.0f);
-            g_bleStatus.omega = constrain(parsed_omega, -1.0f, 1.0f);
+            // ② X軸とRotate軸(Omega)の入れ替え (実機メカナム配置対応)
+            //    左右スティック (val_x) -> omega (実機の平行移動項へ)
+            //    旋回スティック (val_w) -> vx    (実機の旋回項へ)
+            g_bleStatus.omega = constrain(val_x, -1.0f, 1.0f);
+            g_bleStatus.vy    = constrain(-val_y, -1.0f, 1.0f);
+            g_bleStatus.vx    = constrain(val_w, -1.0f, 1.0f);
             g_bleStatus.last_packet_ms = millis();
             g_bleStatus.rx_packet_count++;
             g_bleStatus.failsafe_triggered = false;

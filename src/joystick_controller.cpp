@@ -250,23 +250,23 @@ bool updateJoystick(TwoWire &wireInstance) {
     if (g_dualJoy.move_joy.connected && g_dualJoy.turn_joy.connected) {
         // 【ツインスティック完全モード】
         // move_joy (0x63): 前後左右移動
-        g_dualJoy.vx    = g_dualJoy.move_joy.norm_x;
+        g_dualJoy.omega = g_dualJoy.move_joy.norm_x;  // 左右平行移動 (実機平行移動項へ)
         g_dualJoy.vy    = -g_dualJoy.move_joy.norm_y; // ① Y軸反転
         // turn_joy (0x64): 旋回 (スティック左右)
-        g_dualJoy.omega = g_dualJoy.turn_joy.norm_x;
+        g_dualJoy.vx    = g_dualJoy.turn_joy.norm_x;  // その場旋回 (実機旋回項へ)
     } else {
         // 【ジョイスティック1基接続モード (0x63, 0x64, 0x52共通)】
         // Y軸: Vy（反転処理適用）
-        // X軸: ボタン非押下時は左右平行移動(Vx)、ボタン押下時はその場旋回(Omega)
+        // X軸: ボタン非押下時は左右平行移動、ボタン押下時はその場旋回
         SingleJoyState &j = g_dualJoy.turn_joy.connected ? g_dualJoy.turn_joy : g_dualJoy.move_joy;
         if (j.button_pressed) {
-            g_dualJoy.vx    = 0.0f;
-            g_dualJoy.vy    = -j.norm_y; // ① Y軸反転
-            g_dualJoy.omega = j.norm_x;  // ボタン押下時: その場旋回
-        } else {
-            g_dualJoy.vx    = j.norm_x;  // ボタン非押下時: 左右平行移動
-            g_dualJoy.vy    = -j.norm_y; // ① Y軸反転
+            g_dualJoy.vx    = j.norm_x;   // ボタン押下時: その場旋回 (実機旋回項へ)
+            g_dualJoy.vy    = -j.norm_y;  // ① Y軸反転
             g_dualJoy.omega = 0.0f;
+        } else {
+            g_dualJoy.vx    = 0.0f;
+            g_dualJoy.vy    = -j.norm_y;  // ① Y軸反転
+            g_dualJoy.omega = j.norm_x;   // ボタン非押下時: 左右平行移動 (実機平行移動項へ)
         }
     }
 

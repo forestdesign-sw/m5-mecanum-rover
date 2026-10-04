@@ -79,13 +79,13 @@ void updateDisplayUI(
 
     char valStr[32];
     g_canvas.setTextColor(TFT_WHITE, TFT_BLACK);
-    snprintf(valStr, sizeof(valStr), "X  : %+0.2f", motorState.current_vx);
+    snprintf(valStr, sizeof(valStr), "X  : %+0.2f", motorState.current_omega);
     g_canvas.drawString(valStr, 6, 40, &fonts::Font0);
 
     snprintf(valStr, sizeof(valStr), "Y  : %+0.2f", motorState.current_vy);
     g_canvas.drawString(valStr, 6, 51, &fonts::Font0);
 
-    snprintf(valStr, sizeof(valStr), "Rot: %+0.2f", motorState.current_omega);
+    snprintf(valStr, sizeof(valStr), "Rot: %+0.2f", motorState.current_vx);
     g_canvas.drawString(valStr, 6, 62, &fonts::Font0);
 
     // デバッグ情報（接続中のスティック生値）
@@ -116,13 +116,13 @@ void updateDisplayUI(
     g_canvas.drawFastHLine(cx - r, cy, r * 2, 0x39E7);
     g_canvas.drawFastVLine(cx, cy - r, r * 2, 0x39E7);
 
-    int px = cx + (int)(motorState.current_vx * (float)(r - 2));
+    int px = cx + (int)(motorState.current_omega * (float)(r - 2));
     int py = cy - (int)(motorState.current_vy * (float)(r - 2));
     g_canvas.fillCircle(px, py, 3, TFT_YELLOW);
 
     // 旋回インジケータ
-    if (fabsf(motorState.current_omega) > 0.05f) {
-        g_canvas.drawCircle(cx, cy, r + 2, motorState.current_omega > 0 ? TFT_MAGENTA : TFT_GREEN);
+    if (fabsf(motorState.current_vx) > 0.05f) {
+        g_canvas.drawCircle(cx, cy, r + 2, motorState.current_vx > 0 ? TFT_MAGENTA : TFT_GREEN);
     }
 
     // ==========================================
