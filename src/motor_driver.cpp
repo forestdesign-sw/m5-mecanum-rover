@@ -68,15 +68,15 @@ void setMotorVelocities(float vx, float vy, float omega) {
     g_state.current_vy = vy;
     g_state.current_omega = omega;
 
-    // メカナム運動学の計算
-    // FL =  Vy + Vx - Omega
-    // FR =  Vy - Vx + Omega
-    // RL =  Vy - Vx - Omega
-    // RR =  Vy + Vx + Omega
-    float v_fl =  vy + vx - omega;
-    float v_fr =  vy - vx + omega;
-    float v_rl =  vy - vx - omega;
-    float v_rr =  vy + vx + omega;
+    // メカナム運動学の計算（上面視Xパターン / 接地面Oパターン）
+    // V_FL =  Vy + Vx + Omega
+    // V_FR =  Vy - Vx - Omega
+    // V_RL =  Vy - Vx + Omega
+    // V_RR =  Vy + Vx - Omega
+    float v_fl =  vy + vx + omega;
+    float v_fr =  vy - vx - omega;
+    float v_rl =  vy - vx + omega;
+    float v_rr =  vy + vx - omega;
 
     // 最大値正規化処理
     float max_val = fabsf(v_fl);

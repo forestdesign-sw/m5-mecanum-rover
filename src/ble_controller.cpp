@@ -59,14 +59,17 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
         if (rxValue.length() == 0) return;
         Serial.printf("[BLE] Raw data received: %u bytes\n", (unsigned int)rxValue.length());
 
-        // バイナリプロトコル判定: 0xAA 0x55 <int8_t vx> <int8_t vy> <int8_t omega>
+        // バイナリプロトコル判定: 0xAA 0x55 <int8_t raw_vx> <int8_t raw_vy> <int8_t raw_w>
         if (rxValue.length() >= 5 && (uint8_t)rxValue[0] == 0xAA && (uint8_t)rxValue[1] == 0x55) {
             int8_t raw_vx = (int8_t)rxValue[2];
             int8_t raw_vy = (int8_t)rxValue[3];
             int8_t raw_w  = (int8_t)rxValue[4];
 
-            g_bleStatus.vx = constrain((float)raw_vx / 100.0f, -1.0f, 1.0f);
-            g_bleStatus.vy = constrain((float)raw_vy / 100.0f, -1.0f, 1.0f);
+            // 改修仕様:
+            // ① Y軸反転: Vy = -Vy
+            // ② 軸マッピング: 左右スティック -> Vx (平行移動), 旋回スティック -> Omega (その場旋回)
+            g_bleStatus.vx    = constrain((float)raw_vx / 100.0f, -1.0f, 1.0f);
+            g_bleStatus.vy    = constrain(-(float)raw_vy / 100.0f, -1.0f, 1.0f);
             g_bleStatus.omega = constrain((float)raw_w / 100.0f, -1.0f, 1.0f);
 
             snprintf(g_bleStatus.last_raw_msg, sizeof(g_bleStatus.last_raw_msg), "BIN:%d,%d,%d", raw_vx, raw_vy, raw_w);
@@ -93,8 +96,11 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
         float parsed_vx = 0.0f, parsed_vy = 0.0f, parsed_omega = 0.0f;
         int count = sscanf(buffer, "%f,%f,%f", &parsed_vx, &parsed_vy, &parsed_omega);
         if (count == 3) {
-            g_bleStatus.vx = constrain(parsed_vx, -1.0f, 1.0f);
-            g_bleStatus.vy = constrain(parsed_vy, -1.0f, 1.0f);
+            // 改修仕様:
+            // ① Y軸反転: Vy = -Vy
+            // ② 軸マッピング: 左右スティック -> Vx (平行移動), 旋回スティック -> Omega (その場旋回)
+            g_bleStatus.vx    = constrain(parsed_vx, -1.0f, 1.0f);
+            g_bleStatus.vy    = constrain(-parsed_vy, -1.0f, 1.0f);
             g_bleStatus.omega = constrain(parsed_omega, -1.0f, 1.0f);
             g_bleStatus.last_packet_ms = millis();
             g_bleStatus.rx_packet_count++;

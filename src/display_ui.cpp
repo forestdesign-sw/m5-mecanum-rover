@@ -79,13 +79,13 @@ void updateDisplayUI(
 
     char valStr[32];
     g_canvas.setTextColor(TFT_WHITE, TFT_BLACK);
-    snprintf(valStr, sizeof(valStr), "Vx: %+0.2f", motorState.current_vx);
+    snprintf(valStr, sizeof(valStr), "X  : %+0.2f", motorState.current_vx);
     g_canvas.drawString(valStr, 6, 40, &fonts::Font0);
 
-    snprintf(valStr, sizeof(valStr), "Vy: %+0.2f", motorState.current_vy);
+    snprintf(valStr, sizeof(valStr), "Y  : %+0.2f", motorState.current_vy);
     g_canvas.drawString(valStr, 6, 51, &fonts::Font0);
 
-    snprintf(valStr, sizeof(valStr), "W : %+0.2f", motorState.current_omega);
+    snprintf(valStr, sizeof(valStr), "Rot: %+0.2f", motorState.current_omega);
     g_canvas.drawString(valStr, 6, 62, &fonts::Font0);
 
     // デバッグ情報（接続中のスティック生値）
@@ -130,7 +130,7 @@ void updateDisplayUI(
     // ==========================================
     g_canvas.drawRoundRect(2, 106, 131, 91, 3, 0x39E7);
     g_canvas.setTextColor(TFT_GOLD, TFT_BLACK);
-    g_canvas.drawString("MOTORS (MAX 3071)", 6, 109, &fonts::Font0);
+    g_canvas.drawString("MOTORS (MAX 2252)", 6, 109, &fonts::Font0);
 
     auto drawWheelBox = [&](int x, int y, const char *name, const WheelStatus &ws) {
         uint16_t boxColor = 0x2104;
@@ -156,9 +156,10 @@ void updateDisplayUI(
         g_canvas.setTextColor(txtColor, boxColor);
         g_canvas.drawRightString(dirStr, x + 56, y + 3, &fonts::Font0);
 
+        int32_t signedPwm = (ws.direction < 0) ? -(int32_t)ws.pwm_val : (int32_t)ws.pwm_val;
         char pwmStr[16];
-        snprintf(pwmStr, sizeof(pwmStr), "%4u", ws.pwm_val);
-        g_canvas.drawString(pwmStr, x + 8, y + 17, &fonts::Font0);
+        snprintf(pwmStr, sizeof(pwmStr), "%+5d", (int)signedPwm);
+        g_canvas.drawString(pwmStr, x + 4, y + 17, &fonts::Font0);
     };
 
     drawWheelBox(6, 122, "FL", motorState.fl);

@@ -727,14 +727,17 @@
                 },
                 () => {
                     targetOmega = 0.0;
-                }
+                },
             );
 
             // PWA Service Worker 登録
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('./sw.js').catch((err) => {
-                        console.warn('ServiceWorker registration failed: ', err);
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker.register("./sw.js").catch((err) => {
+                        console.warn(
+                            "ServiceWorker registration failed: ",
+                            err,
+                        );
                     });
                 });
             }
