@@ -24,19 +24,20 @@
 // ==========================================
 // PCA9685 出力チャンネルアサイン (L298N x 2台)
 // ==========================================
-// FL: 左前 (Front-Left)
-#define CH_FL_IN1                 0
-#define CH_FL_IN2                 1
+// 実機配線修正: 左前(FL)と左後(RL)のチャンネル入れ替え
+// FL: 左前 (Front-Left) -> PCA9685 CH 4, 5
+#define CH_FL_IN1                 4
+#define CH_FL_IN2                 5
 
-// FR: 右前 (Front-Right)
+// FR: 右前 (Front-Right) -> PCA9685 CH 2, 3
 #define CH_FR_IN3                 2
 #define CH_FR_IN4                 3
 
-// RL: 左後 (Rear-Left)
-#define CH_RL_IN1                 4
-#define CH_RL_IN2                 5
+// RL: 左後 (Rear-Left) -> PCA9685 CH 0, 1
+#define CH_RL_IN1                 0
+#define CH_RL_IN2                 1
 
-// RR: 右後 (Rear-Right)
+// RR: 右後 (Rear-Right) -> PCA9685 CH 6, 7
 #define CH_RR_IN3                 6
 #define CH_RR_IN4                 7
 
